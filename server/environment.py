@@ -252,16 +252,22 @@ class DataCleaningEnvironment:
         return f"Fixed {fixed} phone numbers in '{col}' to NNN-NNN-NNNN format.", True
 
     def _fix_date(self, col) -> Tuple[str, bool]:
+        _DATE_FORMATS = ["%Y-%m-%d", "%b %d %Y", "%d/%m/%Y", "%m/%d/%Y", "%Y/%m/%d"]
+
         def normalise(val):
             if pd.isna(val):
                 return val
-            try:
-                return pd.to_datetime(str(val), dayfirst=False).strftime("%Y-%m-%d")
-            except Exception:
+            s = str(val).strip()
+            for fmt in _DATE_FORMATS:
                 try:
-                    return pd.to_datetime(str(val), dayfirst=True).strftime("%Y-%m-%d")
+                    return pd.to_datetime(s, format=fmt).strftime("%Y-%m-%d")
                 except Exception:
-                    return val
+                    pass
+            # last-resort flexible parse
+            try:
+                return pd.to_datetime(s).strftime("%Y-%m-%d")
+            except Exception:
+                return val
 
         before = (~self._df[col].apply(
             lambda x: bool(DATE_RE.match(str(x))) if pd.notna(x) else False
