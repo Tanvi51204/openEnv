@@ -9,3 +9,4 @@ venv/
 *.env
 baseline_scores.json
 .DS_Store
+.claude/
