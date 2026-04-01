@@ -1,6 +1,7 @@
 """
 FastAPI application exposing the OpenEnv-compatible HTTP API.
-Endpoints: GET /health, POST /reset, POST /step, POST /state, GET /docs
+Endpoints: GET /health, GET /metadata, GET /schema,
+           POST /reset, POST /step, POST /state, GET /docs
 """
 
 from typing import Optional
@@ -38,7 +39,78 @@ class StepResponse(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "healthy"}
+
+
+@app.get("/metadata")
+def metadata():
+    return {
+        "name": "data-cleaning-env",
+        "description": (
+            "A real-world data cleaning environment where an AI agent fixes "
+            "missing values, duplicate rows, format inconsistencies, outliers, "
+            "and dtype errors across three progressively harder tasks."
+        ),
+        "version": "0.1.0",
+        "tags": ["openenv", "data-cleaning", "rl", "real-world"],
+        "tasks": [
+            {"id": "task1", "name": "Fill Missing Values", "difficulty": "easy"},
+            {"id": "task2", "name": "Fix Formats and Remove Duplicates", "difficulty": "medium"},
+            {"id": "task3", "name": "Full Cleaning Pipeline", "difficulty": "hard"},
+        ],
+    }
+
+
+@app.get("/schema")
+def schema():
+    return {
+        "action": {
+            "type": "object",
+            "properties": {
+                "operation": {
+                    "type": "string",
+                    "enum": [
+                        "fill_missing",
+                        "drop_duplicates",
+                        "fix_format",
+                        "replace_value",
+                        "drop_outliers",
+                        "fix_dtype",
+                    ],
+                },
+                "column": {"type": "string", "nullable": True},
+                "params": {"type": "object", "nullable": True},
+            },
+            "required": ["operation"],
+        },
+        "observation": {
+            "type": "object",
+            "properties": {
+                "done":             {"type": "boolean"},
+                "reward":           {"type": "number"},
+                "data_preview":     {"type": "string"},
+                "data_shape":       {"type": "array", "items": {"type": "integer"}},
+                "missing_counts":   {"type": "object"},
+                "duplicate_count":  {"type": "integer"},
+                "dtype_issues":     {"type": "object"},
+                "task_description": {"type": "string"},
+                "message":          {"type": "string"},
+                "step_count":       {"type": "integer"},
+                "current_score":    {"type": "number"},
+            },
+        },
+        "state": {
+            "type": "object",
+            "properties": {
+                "episode_id":       {"type": "string"},
+                "task_id":          {"type": "integer"},
+                "step_count":       {"type": "integer"},
+                "max_steps":        {"type": "integer"},
+                "total_errors":     {"type": "integer"},
+                "errors_remaining": {"type": "integer"},
+            },
+        },
+    }
 
 
 @app.post("/reset", response_model=StepResponse)
