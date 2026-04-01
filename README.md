@@ -173,6 +173,12 @@ python inference.py
 
 > Full agent step-by-step logs available in `inference_log.txt`
 ---
+## Live Demo
+🤗 **HuggingFace Space:** https://srishtichugh-openenv-hack.hf.space
+
+- Health check: https://srishtichugh-openenv-hack.hf.space/health
+- Interactive API docs: https://srishtichugh-openenv-hack.hf.space/docs
+---
 
 ## Project Structure
 
