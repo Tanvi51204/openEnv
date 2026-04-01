@@ -164,13 +164,14 @@ python inference.py
 
 | Task | Difficulty | Score  |
 |------|------------|--------|
-| 1    | Easy       | ~0.950 |
-| 2    | Medium     | ~0.800 |
-| 3    | Hard       | ~0.700 |
-| avg  | —          | ~0.817 |
+| 1    | Easy       | 1.000  |
+| 2    | Medium     | 1.000  |
+| 3    | Hard       | 1.000  |
+| avg  | —          | 1.000  |
 
-*(Scores produced by `gpt-4o-mini` with greedy decoding, temperature=0)*
+*(Scores produced by `google/gemma-3-27b-it` via NVIDIA NIM, temperature=0)*
 
+> Full agent step-by-step logs available in `inference_log.txt`
 ---
 
 ## Project Structure

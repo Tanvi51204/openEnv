@@ -7,6 +7,5 @@ build/
 venv/
 .env
 *.env
-baseline_scores.json
 .DS_Store
 .claude/
