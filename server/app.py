@@ -6,6 +6,7 @@ Endpoints: GET /health, POST /reset, POST /step, POST /state, GET /docs
 from typing import Optional
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+import uvicorn
 
 from models import DataCleaningAction, DataCleaningObservation, DataCleaningState
 from server.environment import DataCleaningEnvironment
@@ -61,3 +62,15 @@ def step(action: DataCleaningAction):
 @app.post("/state", response_model=DataCleaningState)
 def state():
     return env.state()
+
+
+# ------------------------------------------------------------------
+# Entry point (required by openenv-core and [project.scripts])
+# ------------------------------------------------------------------
+
+def main():
+    uvicorn.run("server.app:app", host="0.0.0.0", port=8000)
+
+
+if __name__ == "__main__":
+    main()
