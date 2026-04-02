@@ -1,17 +1,3 @@
----
-title: Data Cleaning Environment
-emoji: 🧹
-colorFrom: blue
-colorTo: green
-sdk: docker
-pinned: false
-app_port: 8000
-tags:
-  - openenv
-  - rl
-  - data-cleaning
----
-
 # 🧹 Data Cleaning OpenEnv
 
 A **real-world data cleaning environment** for training and evaluating AI agents.
