@@ -1,4 +1,4 @@
-# 🧹 Data Cleaning OpenEnv
+# Data Cleaning OpenEnv
 
 A **real-world data cleaning environment** for training and evaluating AI agents.
 
