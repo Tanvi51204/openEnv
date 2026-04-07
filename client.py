@@ -90,7 +90,7 @@ class DataCleaningEnvClient:
 
     def state(self) -> DataCleaningState:
         """Return current episode metadata without modifying state."""
-        resp = self._client.get("/state")
+        resp = self._client.post("/state")
         resp.raise_for_status()
         return DataCleaningState(**resp.json())
 
