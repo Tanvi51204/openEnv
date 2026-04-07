@@ -197,10 +197,10 @@ Rewards are bounded to **[−0.05, 1.2]**. A partial reward is emitted on every 
 
 | Task | Difficulty | Score |
 |---|---|---|
-| 1 — Fill Missing Values | Easy | 1.000 |
-| 2 — Fix Formats + Duplicates | Medium | 1.000 |
-| 3 — Full Cleaning Pipeline | Hard | 1.000 |
-| **Average** | — | **1.000** |
+| 1 — Fill Missing Values | Easy | 0.999 |
+| 2 — Fix Formats + Duplicates | Medium | 0.999 |
+| 3 — Full Cleaning Pipeline | Hard | 0.999 |
+| **Average** | — | **0.999** |
 
 *Produced by `google/gemma-3-27b-it` via NVIDIA NIM, `temperature=0`. Full step-by-step agent logs: `inference_log.txt`.*
 
