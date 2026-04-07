@@ -119,7 +119,7 @@ def reset(req: ResetRequest = ResetRequest()):
         obs = env.reset(task_id=req.task_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    return StepResponse(observation=obs, reward=0.0, done=False)
+    return StepResponse(observation=obs, reward=obs.reward, done=False)
 
 
 @app.post("/step", response_model=StepResponse)

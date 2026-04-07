@@ -62,7 +62,7 @@ class DataCleaningEnvironment:
         self._last_score   = self._compute_score()
         self._total_errors = self._count_errors()
 
-        return self._build_obs(0.0, False, "Episode started. Begin cleaning.")
+        return self._build_obs(self._last_score, False, "Episode started. Begin cleaning.")
 
     def step(self, action: DataCleaningAction) -> DataCleaningObservation:
         if self._df is None:
