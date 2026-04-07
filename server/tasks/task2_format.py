@@ -56,7 +56,7 @@ def score(current_df, meta: dict) -> float:
     dupe_score  = 1.0 - dupes        / max(meta["orig_dupes"], 1)
 
     combined = 0.35 * phone_score + 0.35 * date_score + 0.30 * dupe_score
-    return round(max(0.0, min(1.0, combined)), 4)
+    return round(max(0.001, min(0.999, combined)), 4)
 
 
 def count_errors(current_df, meta: dict) -> int:
