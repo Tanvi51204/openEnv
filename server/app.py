@@ -1,11 +1,11 @@
 """
 FastAPI application exposing the OpenEnv-compatible HTTP API.
 Endpoints: GET /health, GET /metadata, GET /schema,
-           POST /reset, POST /step, POST /state, GET /docs
+           POST /reset, POST /step, GET /state, POST /state, GET /docs
 """
 
-from typing import Optional
-from fastapi import FastAPI, HTTPException
+from typing import Any, Dict, Optional
+from fastapi import Body, FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
 
@@ -123,16 +123,31 @@ def reset(req: ResetRequest = ResetRequest()):
 
 
 @app.post("/step", response_model=StepResponse)
-def step(action: DataCleaningAction):
+async def step(body: Dict[str, Any] = Body(...)):
+    """
+    Accept both openenv-core wrapped format:
+        {"action": {"operation": "...", ...}, "timeout_s": 15}
+    and direct format (for backward compat with our own client/inference):
+        {"operation": "...", "column": "...", "params": {...}}
+    """
+    action_data = body.get("action", body)
     try:
+        action = DataCleaningAction(**action_data)
         obs = env.step(action)
-    except RuntimeError as e:
+    except (TypeError, KeyError, Exception) as e:
         raise HTTPException(status_code=400, detail=str(e))
     return StepResponse(observation=obs, reward=obs.reward, done=obs.done)
 
 
+@app.get("/state", response_model=DataCleaningState)
+def state_get():
+    """GET /state — openenv-core spec."""
+    return env.state()
+
+
 @app.post("/state", response_model=DataCleaningState)
-def state():
+def state_post():
+    """POST /state — backward compatibility."""
     return env.state()
 
 
