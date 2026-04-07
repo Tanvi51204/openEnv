@@ -112,6 +112,23 @@ def api_get(path: str) -> dict:
     resp.raise_for_status()
     return resp.json()
 
+# ------------------------------------------------------------------
+# Score sanitizer
+# ------------------------------------------------------------------
+
+def sanitize_score(score: float) -> float:
+    """
+    Ensures score is strictly within (0, 1)
+    required by hackathon validator.
+    """
+    EPS = 1e-4
+
+    if score >= 1.0:
+        return 1.0 - EPS
+    if score <= 0.0:
+        return EPS
+
+    return float(score)
 
 # ------------------------------------------------------------------
 # Agent loop
@@ -228,7 +245,7 @@ def run_task(task_id: int) -> float:
     finally:
         log_end(success=success, steps=steps_taken, rewards=rewards)
 
-    final_score = obs["current_score"]
+    final_score = sanitize_score(obs["current_score"])
     print(
         f"\n  Task {task_id} final score: {final_score:.4f}  (steps used: {obs['step_count']})",
         file=sys.stderr,
@@ -268,7 +285,7 @@ def main():
     print("="*60, file=sys.stderr)
     for k, v in scores.items():
         print(f"  {k}: {v:.4f}", file=sys.stderr)
-    avg = sum(scores.values()) / len(scores)
+    avg = sanitize_score(sum(scores.values()) / len(scores))
     print(f"  average: {avg:.4f}", file=sys.stderr)
     print("="*60, file=sys.stderr)
 

@@ -111,11 +111,24 @@ class DataCleaningEnvironment:
 
     def _compute_score(self) -> float:
         if self._task_id == 1:
-            return t1.score(self._df, self._meta)
+            raw = t1.score(self._df, self._meta)
         elif self._task_id == 2:
-            return t2.score(self._df, self._meta)
+            raw = t2.score(self._df, self._meta)
         else:
-            return t3.score(self._df, self._meta)
+            raw = t3.score(self._df, self._meta)
+
+        EPS = 1e-4
+
+        # First round safely
+        raw = float(raw)
+
+        # HARD clamp AFTER rounding risk
+        if raw >= 1.0:
+            raw = 1.0 - EPS
+        elif raw <= 0.0:
+            raw = EPS
+
+        return round(raw, 4)
 
     def _count_errors(self) -> int:
         if self._task_id == 1:
