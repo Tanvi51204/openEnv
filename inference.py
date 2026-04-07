@@ -246,13 +246,22 @@ def main():
     print(f"Env   : {ENV_URL}", file=sys.stderr)
 
     # Smoke-test health endpoint
-    health = api_get("/health")
-    assert health.get("status") == "ok", f"Health check failed: {health}"
-    print("Health check: OK\n", file=sys.stderr)
+    try:
+        health = api_get("/health")
+        assert health.get("status") in ("ok", "healthy"), f"Unexpected status: {health}"
+        print("Health check: OK\n", file=sys.stderr)
+    except Exception as exc:
+        print(f"[ERROR] Environment not reachable at {ENV_URL}: {exc}", file=sys.stderr)
+        print("[ERROR] Make sure the server is running and ENV_URL is correct.", file=sys.stderr)
+        sys.exit(1)
 
     scores = {}
     for task_id in [1, 2, 3]:
-        scores[f"task{task_id}"] = run_task(task_id)
+        try:
+            scores[f"task{task_id}"] = run_task(task_id)
+        except Exception as exc:
+            print(f"[ERROR] Task {task_id} failed: {exc}", file=sys.stderr)
+            scores[f"task{task_id}"] = 0.0
 
     print("\n" + "="*60, file=sys.stderr)
     print("  BASELINE RESULTS", file=sys.stderr)
