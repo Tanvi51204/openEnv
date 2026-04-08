@@ -87,7 +87,7 @@ def score(current_df, meta: dict) -> float:
 
     combined = 0.25 * null_score + 0.20 * dupe_score + 0.20 * outlier_score \
              + 0.175 * country_score + 0.175 * date_score
-    return round(max(0.001, min(0.999, combined)), 4)
+    return round(max(0.01, min(0.99, combined)), 4)
 
 
 def count_errors(current_df, meta: dict) -> int:

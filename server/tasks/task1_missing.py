@@ -30,9 +30,9 @@ def load():
 def score(current_df, original_nulls: int) -> float:
     """Score in [0, 1]: fraction of nulls filled."""
     if original_nulls == 0:
-        return 0.999
+        return 0.99
     remaining = int(current_df.isnull().sum().sum())
-    return round(max(0.001, min(0.999, 1.0 - remaining / original_nulls)), 4)
+    return round(max(0.01, min(0.99, 1.0 - remaining / original_nulls)), 4)
 
 
 def count_errors(current_df) -> int:

@@ -11,7 +11,7 @@ Required environment variables:
 STDOUT FORMAT (OpenEnv spec):
     [START] task=<task_name> env=<benchmark> model=<model_name>
     [STEP]  step=<n> action=<action_str> reward=<0.00> done=<true|false> error=<msg|null>
-    [END]   success=<true|false> steps=<n> rewards=<r1,r2,...,rn>
+    [END]   task=<task_name> score=<0.00> steps=<n>
 """
 
 import json
@@ -90,9 +90,12 @@ def log_step(step: int, action: str, reward: float, done: bool, error: Optional[
     )
 
 
-def log_end(success: bool, steps: int, rewards: List[float]) -> None:
-    rewards_str = ",".join(f"{r:.2f}" for r in rewards)
-    print(f"[END] success={str(success).lower()} steps={steps} rewards={rewards_str}", flush=True)
+def log_end(task_name: str, score: float, steps: int) -> None:
+    safe_score = max(0.01, min(0.99, float(score)))
+    print(
+        f"[END] task={task_name} score={safe_score:.4f} steps={steps}",
+        flush=True
+    )
 
 
 # ------------------------------------------------------------------
@@ -112,23 +115,6 @@ def api_get(path: str) -> dict:
     resp.raise_for_status()
     return resp.json()
 
-# ------------------------------------------------------------------
-# Score sanitizer
-# ------------------------------------------------------------------
-
-def sanitize_score(score: float) -> float:
-    """
-    Ensures score is strictly within (0, 1)
-    required by hackathon validator.
-    """
-    EPS = 1e-4
-
-    if score >= 1.0:
-        return 1.0 - EPS
-    if score <= 0.0:
-        return EPS
-
-    return float(score)
 
 # ------------------------------------------------------------------
 # Agent loop
@@ -243,9 +229,10 @@ def run_task(task_id: int) -> float:
             time.sleep(0.3)
 
     finally:
-        log_end(success=success, steps=steps_taken, rewards=rewards)
+        final = obs.get("current_score", 0.01) if isinstance(obs, dict) else 0.01
+        log_end(task_name=task_name, score=final, steps=steps_taken)
 
-    final_score = sanitize_score(obs["current_score"])
+    final_score = obs["current_score"]
     print(
         f"\n  Task {task_id} final score: {final_score:.4f}  (steps used: {obs['step_count']})",
         file=sys.stderr,
@@ -278,14 +265,14 @@ def main():
             scores[f"task{task_id}"] = run_task(task_id)
         except Exception as exc:
             print(f"[ERROR] Task {task_id} failed: {exc}", file=sys.stderr)
-            scores[f"task{task_id}"] = 0.0
+            scores[f"task{task_id}"] = 0.01
 
     print("\n" + "="*60, file=sys.stderr)
     print("  BASELINE RESULTS", file=sys.stderr)
     print("="*60, file=sys.stderr)
     for k, v in scores.items():
         print(f"  {k}: {v:.4f}", file=sys.stderr)
-    avg = sanitize_score(sum(scores.values()) / len(scores))
+    avg = sum(scores.values()) / len(scores)
     print(f"  average: {avg:.4f}", file=sys.stderr)
     print("="*60, file=sys.stderr)
 
