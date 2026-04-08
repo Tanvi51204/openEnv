@@ -46,9 +46,9 @@ api:
   docs:    GET  /docs
 
 reward:
-  range: [-0.05, 1.2]
+  range: [0.001, 0.999]
   partial: true
-  terminal_bonus: 0.2
+  terminal_bonus: 0.0
 
 observation_space:
   type: object

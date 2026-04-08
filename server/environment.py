@@ -33,7 +33,7 @@ class DataCleaningEnvironment:
         self._step_count: int               = 0
         self._max_steps: int                = 20
         self._total_errors: int             = 0
-        self._last_score: float             = 0.0
+        self._last_score: float             = 0.001
         self._task_cycle: int               = 0      # for round-robin default
 
     # ------------------------------------------------------------------
@@ -76,19 +76,21 @@ class DataCleaningEnvironment:
         score_after    = self._compute_score()
         self._last_score = score_after
 
-        delta   = score_after - score_before
+        delta = score_after - score_before
         if not applied:
-            reward = -0.05
+            reward = 0.001
         elif delta <= 0:
-            reward = -0.01
+            reward = 0.001
         else:
             reward = round(delta, 4)
 
         done = (score_after >= 0.95) or (self._step_count >= self._max_steps)
-        if done and score_after >= 0.95:
-            reward = round(reward + 0.2, 4)
+
+        # Clamp reward strictly within (0.001, 0.999) — no terminal bonus
+        reward = round(max(0.001, min(0.999, reward)), 4)
 
         return self._build_obs(reward, done, message)
+
 
     def state(self) -> DataCleaningState:
         if self._df is None:
