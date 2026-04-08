@@ -272,7 +272,7 @@ def main():
     print("="*60, file=sys.stderr)
     for k, v in scores.items():
         print(f"  {k}: {v:.4f}", file=sys.stderr)
-    avg = sum(scores.values()) / len(scores)
+    avg = round(sum(scores.values()) / len(scores), 4)
     print(f"  average: {avg:.4f}", file=sys.stderr)
     print("="*60, file=sys.stderr)
 
