@@ -195,3 +195,105 @@ def generate_task3_datasets():
     dirty_df = pd.concat([dirty_df, dup_rows], ignore_index=True)
 
     return dirty_df.reset_index(drop=True), clean_df.reset_index(drop=True)
+
+
+# ---------------------------------------------------------------------------
+# Task 4 — Multi-source merge pipeline (Expert)
+# ---------------------------------------------------------------------------
+# Two independently generated "source" DataFrames with misaligned schemas
+# that must be aligned and merged before the standard cleaning pipeline.
+#
+# Source A — CRM export (150 rows):
+#   cust_id, full_name, Age, purchase_amt, Country, signup
+#
+# Source B — Marketing export (100 rows):
+#   customer_id, name, age_years, spend, country_name, registration_date, email
+#
+# Target schema after align_schema + merge_sources (250 rows):
+#   customer_id, name, age, purchase_amount, country, signup_date, email
+#
+# Additional dirty issues injected after merge:
+#   - Missing values in age, purchase_amount, country (~10%)
+#   - Mixed country capitalisation (~30%)
+#   - Mixed date formats in signup_date (~40%)
+#   - 10 duplicate rows
+
+def generate_task4_datasets():
+    """
+    Returns (source_a, source_b, clean_merged_df).
+    source_a and source_b have misaligned schemas.
+    clean_merged_df is the ground-truth after alignment + merge + cleaning.
+    """
+    rng = np.random.default_rng(SEED + 4)   # distinct seed offset
+    random.seed(SEED + 4)
+
+    countries   = ["USA", "UK", "Canada", "Australia", "Germany"]
+    first_names = ["Alice", "Bob", "Carol", "David", "Eve", "Frank",
+                   "Grace", "Heidi", "Ivan", "Judy", "Karl", "Laura"]
+    last_names  = ["Smith", "Jones", "Brown", "Taylor", "Wilson",
+                   "Davis", "Miller", "Anderson", "Thomas", "Jackson"]
+
+    # ---- Source A — CRM (150 rows) ----
+    n_a = 150
+    names_a   = [f"{random.choice(first_names)} {random.choice(last_names)}" for _ in range(n_a)]
+    ages_a    = rng.integers(18, 75, size=n_a).astype(float)
+    amounts_a = np.round(rng.uniform(10.0, 500.0, size=n_a), 2)
+    countries_a = rng.choice(countries, size=n_a)
+    days_a    = rng.integers(0, 730, size=n_a)
+    dates_a   = [(pd.Timestamp("2022-01-01") + pd.Timedelta(days=int(d))).strftime("%Y-%m-%d")
+                 for d in days_a]
+    emails_a  = [f"crm_{i}@example.com" for i in range(1, n_a + 1)]
+
+    source_a = pd.DataFrame({
+        "cust_id":      [f"A{str(i).zfill(4)}" for i in range(1, n_a + 1)],
+        "full_name":    names_a,           # → name
+        "Age":          ages_a,            # → age  (capital A — schema mismatch)
+        "purchase_amt": amounts_a,         # → purchase_amount (truncated name)
+        "Country":      countries_a,       # → country (capital C)
+        "signup":       dates_a,           # → signup_date (truncated name)
+        "email":        emails_a,
+    })
+
+    # ---- Source B — Marketing (100 rows) ----
+    n_b = 100
+    names_b   = [f"{random.choice(first_names)} {random.choice(last_names)}" for _ in range(n_b)]
+    ages_b    = rng.integers(18, 75, size=n_b).astype(float)
+    amounts_b = np.round(rng.uniform(10.0, 500.0, size=n_b), 2)
+    countries_b = rng.choice(countries, size=n_b)
+    days_b    = rng.integers(0, 730, size=n_b)
+    dates_b   = [(pd.Timestamp("2022-01-01") + pd.Timedelta(days=int(d))).strftime("%Y-%m-%d")
+                 for d in days_b]
+    emails_b  = [f"mkt_{i}@example.com" for i in range(1, n_b + 1)]
+
+    source_b = pd.DataFrame({
+        "customer_id":        [f"B{str(i).zfill(4)}" for i in range(1, n_b + 1)],
+        "name":               names_b,
+        "age_years":          ages_b,      # → age  (suffix mismatch)
+        "spend":              amounts_b,   # → purchase_amount (synonym)
+        "country_name":       countries_b, # → country (suffix mismatch)
+        "registration_date":  dates_b,     # → signup_date (synonym)
+        "email":              emails_b,
+    })
+
+    # ---- Ground-truth clean merged DataFrame ----
+    clean_a = pd.DataFrame({
+        "customer_id":    source_a["cust_id"],
+        "name":           source_a["full_name"],
+        "age":            source_a["Age"],
+        "purchase_amount":source_a["purchase_amt"],
+        "country":        source_a["Country"],
+        "signup_date":    source_a["signup"],
+        "email":          source_a["email"],
+    })
+    clean_b = pd.DataFrame({
+        "customer_id":    source_b["customer_id"],
+        "name":           source_b["name"],
+        "age":            source_b["age_years"],
+        "purchase_amount":source_b["spend"],
+        "country":        source_b["country_name"],
+        "signup_date":    source_b["registration_date"],
+        "email":          source_b["email"],
+    })
+    clean_merged = pd.concat([clean_a, clean_b], ignore_index=True).reset_index(drop=True)
+
+    return source_a.copy(), source_b.copy(), clean_merged

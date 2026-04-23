@@ -37,6 +37,8 @@ if not HF_TOKEN:
 
 client = OpenAI(api_key=HF_TOKEN, base_url=API_BASE_URL)
 
+HISTORY_WINDOW = 8  # keep last N turns (user+assistant pairs) to cap token usage
+
 SYSTEM_PROMPT = """You are a data cleaning agent. You control a data cleaning environment
 through JSON actions. Each turn you receive an observation JSON describing the current state
 of a dataset (preview, missing counts, duplicate count, dtype issues, current score, etc.)
@@ -165,10 +167,13 @@ def run_task(task_id: int) -> float:
             obs_text = obs_to_text(obs)
             history.append({"role": "user", "content": obs_text})
 
+            # Sliding window — keep system prompt + last HISTORY_WINDOW messages
+            windowed_history = history[-(HISTORY_WINDOW * 2):]
+
             try:
                 response = client.chat.completions.create(
                     model       = MODEL_NAME,
-                    messages    = [{"role": "system", "content": SYSTEM_PROMPT}] + history,
+                    messages    = [{"role": "system", "content": SYSTEM_PROMPT}] + windowed_history,
                     temperature = 0.0,
                     max_tokens  = 256,
                 )
@@ -207,7 +212,7 @@ def run_task(task_id: int) -> float:
             obs         = result["observation"]
             step_reward = result["reward"]
             done        = result["done"]
-            error_msg   = None if obs["message"].startswith("Fill") or step_reward >= 0 else obs["message"]
+            error_msg   = None if step_reward >= 0 else obs["message"]
 
             print(f"           -> {obs['message']}", file=sys.stderr)
 

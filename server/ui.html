@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataMedic - AI Data Cleaning Monitor</title>
+    <style>
+        :root {
+            --bg: #050d1a;
+            --bg2: #0a1628;
+            --bg3: #0f1f38;
+            --border: #1a3050;
+            --green: #00e5a0;
+            --green-dim: #00704e;
+            --amber: #f5a623;
+            --red: #ff4d6d;
+            --blue: #4db8ff;
+            --text: #c8dff5;
+            --text-dim: #4a6a8a;
+            --mono: 'Courier New', Courier, monospace;
+            --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--sans);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px,
+                    rgba(0, 0, 0, 0.06) 2px, rgba(0, 0, 0, 0.06) 4px);
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* ── Header ── */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 28px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-pulse {
+            width: 10px;
+            height: 10px;
+            background: var(--green);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--green);
+            animation: pulse 2s infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.3;
+                transform: scale(0.7);
+            }
+        }
+
+        .logo-text {
+            font-family: var(--mono);
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: var(--green);
+        }
+
+        .logo-sub {
+            font-size: 10px;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        .status-pill {
+            font-family: var(--mono);
+            font-size: 11px;
+            padding: 4px 14px;
+            border-radius: 20px;
+            border: 1px solid;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .status-pill.idle {
+            color: var(--text-dim);
+            border-color: var(--text-dim);
+        }
+
+        .status-pill.running {
+            color: var(--green);
+            border-color: var(--green);
+            box-shadow: 0 0 8px rgba(0, 229, 160, 0.3);
+            animation: pulse 1s infinite;
+        }
+
+        .status-pill.done {
+            color: var(--blue);
+            border-color: var(--blue);
+        }
+
+        /* ── Controls ── */
+        .controls {
+            padding: 16px 28px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            background: var(--bg2);
+        }
+
+        .ctrl-label {
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        .task-btn {
+            font-family: var(--mono);
+            font-size: 11px;
+            padding: 7px 16px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: var(--bg3);
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 1px;
+        }
+
+        .task-btn:hover {
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        .task-btn.active {
+            border-color: var(--green);
+            color: var(--green);
+            background: rgba(0, 229, 160, 0.08);
+        }
+
+        .sep {
+            width: 1px;
+            height: 24px;
+            background: var(--border);
+            margin: 0 4px;
+        }
+
+        .reset-btn {
+            font-family: var(--mono);
+            font-size: 11px;
+            padding: 7px 16px;
+            border-radius: 4px;
+            border: 1px solid var(--amber);
+            background: transparent;
+            color: var(--amber);
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+
+        .reset-btn:hover {
+            background: rgba(245, 166, 35, 0.1);
+        }
+
+        .reset-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .run-btn {
+            font-family: var(--mono);
+            font-size: 11px;
+            padding: 7px 20px;
+            border-radius: 4px;
+            border: none;
+            background: var(--green);
+            color: #050d1a;
+            cursor: pointer;
+            font-weight: 700;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+            margin-left: auto;
+        }
+
+        .run-btn:hover {
+            background: #00ffb3;
+            box-shadow: 0 0 16px rgba(0, 229, 160, 0.4);
+        }
+
+        .run-btn:disabled {
+            background: var(--green-dim);
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .run-hint {
+            font-size: 10px;
+            color: var(--text-dim);
+            font-family: var(--mono);
+            white-space: nowrap;
+        }
+
+        /* ── Main grid ── */
+        .main {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            min-height: calc(100vh - 118px);
+        }
+
+        /* ── Vitals panel ── */
+        .vitals-panel {
+            border-right: 1px solid var(--border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            overflow-y: auto;
+        }
+
+        .panel-title {
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Score ring */
+        .score-ring-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 0;
+        }
+
+        .ring-container {
+            position: relative;
+            width: 130px;
+            height: 130px;
+        }
+
+        .ring-container svg {
+            transform: rotate(-90deg);
+            width: 130px;
+            height: 130px;
+        }
+
+        .ring-bg {
+            fill: none;
+            stroke: var(--bg3);
+            stroke-width: 10;
+        }
+
+        .ring-fill {
+            fill: none;
+            stroke: var(--green);
+            stroke-width: 10;
+            stroke-linecap: round;
+            stroke-dasharray: 326.73;
+            stroke-dashoffset: 326.73;
+            transition: stroke-dashoffset 0.7s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.4s;
+            filter: drop-shadow(0 0 5px var(--green));
+        }
+
+        .ring-text {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--mono);
+        }
+
+        .ring-score {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--green);
+            line-height: 1;
+        }
+
+        .ring-label {
+            font-size: 9px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+
+        /* Vital grid */
+        .vital-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .vital-card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 10px;
+        }
+
+        .vital-name {
+            font-size: 9px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: var(--mono);
+            margin-bottom: 5px;
+        }
+
+        .vital-value {
+            font-family: var(--mono);
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .vital-value.green {
+            color: var(--green);
+        }
+
+        .vital-value.amber {
+            color: var(--amber);
+        }
+
+        .vital-value.red {
+            color: var(--red);
+        }
+
+        .vital-value.blue {
+            color: var(--blue);
+        }
+
+        .vital-sub {
+            font-size: 9px;
+            color: var(--text-dim);
+            margin-top: 3px;
+            font-family: var(--mono);
+        }
+
+        /* DQ bars */
+        .dq-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .dq-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .dq-header {
+            display: flex;
+            justify-content: space-between;
+            font-family: var(--mono);
+            font-size: 10px;
+        }
+
+        .dq-name {
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .dq-val {
+            font-weight: 700;
+        }
+
+        .dq-bar-bg {
+            height: 4px;
+            background: var(--bg3);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .dq-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ── Content area ── */
+        .content-area {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Chart */
+        .chart-section {
+            padding: 20px 28px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .chart-wrap {
+            margin-top: 14px;
+            height: 90px;
+            position: relative;
+        }
+
+        #score-chart {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Plan */
+        .plan-section {
+            padding: 16px 28px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .plan-items {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .plan-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 12px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .plan-num {
+            font-family: var(--mono);
+            font-size: 9px;
+            width: 18px;
+            height: 18px;
+            border: 1px solid var(--amber);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: var(--amber);
+            margin-top: 1px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Thought stream */
+        .thought-section {
+            padding: 16px 28px;
+            border-bottom: 1px solid var(--border);
+            flex: 1;
+        }
+
+        .thought-stream {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .thought-stream::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .thought-stream::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 2px;
+        }
+
+        .thought-item {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .thought-step {
+            font-family: var(--mono);
+            font-size: 9px;
+            color: var(--text-dim);
+            padding: 2px 5px;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            white-space: nowrap;
+            margin-top: 1px;
+            flex-shrink: 0;
+        }
+
+        .thought-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .thought-action {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--blue);
+            margin-bottom: 2px;
+            word-break: break-all;
+        }
+
+        .thought-result {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .thought-reward {
+            font-family: var(--mono);
+            font-size: 10px;
+            padding: 2px 7px;
+            border-radius: 3px;
+            margin-top: 2px;
+            display: inline-block;
+        }
+
+        .reward-pos {
+            background: rgba(0, 229, 160, 0.12);
+            color: var(--green);
+        }
+
+        .reward-neg {
+            background: rgba(255, 77, 109, 0.12);
+            color: var(--red);
+        }
+
+        /* Data table */
+        .preview-section {
+            padding: 16px 28px 20px;
+        }
+
+        .data-table-wrap {
+            margin-top: 10px;
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--mono);
+            font-size: 11px;
+        }
+
+        .data-table th {
+            background: var(--bg3);
+            color: var(--text-dim);
+            padding: 7px 10px;
+            text-align: left;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+        }
+
+        .data-table td {
+            padding: 5px 10px;
+            border-bottom: 1px solid rgba(26, 48, 80, 0.4);
+            color: var(--text);
+            white-space: nowrap;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .cell-null {
+            color: var(--red);
+            font-style: italic;
+        }
+
+        /* Empty state */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 24px;
+            gap: 10px;
+            color: var(--text-dim);
+            text-align: center;
+        }
+
+        .empty-icon {
+            font-size: 36px;
+            opacity: 0.25;
+        }
+
+        .empty-title {
+            font-family: var(--mono);
+            font-size: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .empty-sub {
+            font-size: 12px;
+            max-width: 280px;
+            line-height: 1.6;
+        }
+
+        /* Bottom bar */
+        .bottom-bar {
+            padding: 10px 28px;
+            border-top: 1px solid var(--border);
+            background: var(--bg2);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--text-dim);
+            grid-column: 1 / -1;
+            flex-wrap: wrap;
+        }
+
+        .bottom-stat {
+            display: flex;
+            gap: 6px;
+        }
+
+        .bottom-stat span:last-child {
+            color: var(--text);
+        }
+
+        .dl-btn {
+            margin-left: auto;
+            font-family: var(--mono);
+            font-size: 10px;
+            padding: 5px 14px;
+            border-radius: 4px;
+            border: 1px solid var(--green-dim);
+            background: transparent;
+            color: var(--green);
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+
+        .dl-btn:hover {
+            border-color: var(--green);
+            box-shadow: 0 0 10px rgba(0, 229, 160, 0.2);
+        }
+
+        .dl-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            <div class="logo-pulse" id="logo-pulse"></div>
+            <div>
+                <div class="logo-text">DATAMEDIC</div>
+                <div class="logo-sub">AI Data Quality Monitor · OpenEnv</div>
+            </div>
+        </div>
+        <span class="status-pill idle" id="status-pill">IDLE</span>
+    </header>
+
+    <!-- Controls -->
+    <div class="controls">
+        <span class="ctrl-label">Select Task:</span>
+        <button class="task-btn active" data-task="1" onclick="selectTask(1)">TASK 1 · Easy</button>
+        <button class="task-btn" data-task="2" onclick="selectTask(2)">TASK 2 · Medium</button>
+        <button class="task-btn" data-task="3" onclick="selectTask(3)">TASK 3 · Hard</button>
+        <button class="task-btn" data-task="4" onclick="selectTask(4)">TASK 4 · Expert</button>
+        <div class="sep"></div>
+        <button class="reset-btn" id="reset-btn" onclick="resetEnv()">RESET EPISODE</button>
+        <button class="run-btn" id="run-btn" onclick="runAgent()">RUN DEMO AGENT</button>
+        <span class="run-hint">rule-based · follows plan field</span>
+    </div>
+
+    <!-- Main -->
+    <div class="main">
+
+        <!-- LEFT: Vitals -->
+        <div class="vitals-panel">
+            <div class="panel-title">Patient Vitals</div>
+
+            <div class="score-ring-wrap">
+                <div class="ring-container">
+                    <svg viewBox="0 0 130 130">
+                        <circle class="ring-bg" cx="65" cy="65" r="52" />
+                        <circle class="ring-fill" cx="65" cy="65" r="52" id="ring-fill" />
+                    </svg>
+                    <div class="ring-text">
+                        <div class="ring-score" id="ring-score">--</div>
+                        <div class="ring-label">Health Score</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="vital-grid">
+                <div class="vital-card">
+                    <div class="vital-name">Step</div>
+                    <div class="vital-value blue" id="v-step">--</div>
+                    <div class="vital-sub" id="v-maxstep">of --</div>
+                </div>
+                <div class="vital-card">
+                    <div class="vital-name">Reward</div>
+                    <div class="vital-value green" id="v-reward">--</div>
+                    <div class="vital-sub">last delta</div>
+                </div>
+                <div class="vital-card">
+                    <div class="vital-name">Nulls</div>
+                    <div class="vital-value amber" id="v-nulls">--</div>
+                    <div class="vital-sub">missing cells</div>
+                </div>
+                <div class="vital-card">
+                    <div class="vital-name">Dupes</div>
+                    <div class="vital-value amber" id="v-dupes">--</div>
+                    <div class="vital-sub">duplicate rows</div>
+                </div>
+            </div>
+
+            <div class="panel-title">DQ Dimensions</div>
+            <div class="dq-bars">
+                <div class="dq-row">
+                    <div class="dq-header">
+                        <span class="dq-name">Completeness</span>
+                        <span class="dq-val" id="dq-completeness" style="color:var(--green)">--</span>
+                    </div>
+                    <div class="dq-bar-bg">
+                        <div class="dq-bar-fill" id="bar-completeness" style="width:0%;background:var(--green)"></div>
+                    </div>
+                </div>
+                <div class="dq-row">
+                    <div class="dq-header">
+                        <span class="dq-name">Uniqueness</span>
+                        <span class="dq-val" id="dq-uniqueness" style="color:var(--blue)">--</span>
+                    </div>
+                    <div class="dq-bar-bg">
+                        <div class="dq-bar-fill" id="bar-uniqueness" style="width:0%;background:var(--blue)"></div>
+                    </div>
+                </div>
+                <div class="dq-row">
+                    <div class="dq-header">
+                        <span class="dq-name">Validity</span>
+                        <span class="dq-val" id="dq-validity" style="color:var(--amber)">--</span>
+                    </div>
+                    <div class="dq-bar-bg">
+                        <div class="dq-bar-fill" id="bar-validity" style="width:0%;background:var(--amber)"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Content -->
+        <div class="content-area">
+
+            <div class="chart-section">
+                <div class="panel-title">Health Score Trajectory</div>
+                <div class="chart-wrap">
+                    <svg id="score-chart" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#00e5a0" stop-opacity="0.25" />
+                                <stop offset="100%" stop-color="#00e5a0" stop-opacity="0" />
+                            </linearGradient>
+                        </defs>
+                        <path id="chart-area" fill="url(#chartGrad)" d="" />
+                        <path id="chart-line" fill="none" stroke="#00e5a0" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" d="" style="filter:drop-shadow(0 0 3px #00e5a0)" />
+                        <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" fill="#4a6a8a"
+                            font-size="11" id="chart-empty-msg" font-family="Courier New, monospace">
+                            Run demo agent to see score trajectory
+                        </text>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="plan-section">
+                <div class="panel-title">Agent Treatment Plan &nbsp;<span style="color:var(--amber);font-size:9px">(next
+                        recommended actions)</span></div>
+                <div class="plan-items" id="plan-items">
+                    <div style="color:var(--text-dim);font-size:11px;font-family:var(--mono);padding:4px 0">
+                        Awaiting diagnosis...
+                    </div>
+                </div>
+            </div>
+
+            <div class="thought-section">
+                <div class="panel-title">Agent Operation Log &nbsp;<span
+                        style="color:var(--text-dim);font-size:9px">(actions taken + results)</span></div>
+                <div class="thought-stream" id="thought-stream">
+                    <div class="empty-state" style="padding:16px">
+                        <div class="empty-sub">Actions will appear here as the demo agent runs</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview-section">
+                <div class="panel-title">Dataset Preview &nbsp;<span style="color:var(--text-dim);font-size:9px">(first
+                        10 rows · NULL shown in red)</span></div>
+                <div class="data-table-wrap" id="table-wrap">
+                    <div class="empty-state">
+                        <div class="empty-icon">[?]</div>
+                        <div class="empty-title">No Dataset Loaded</div>
+                        <div class="empty-sub">Select a task — dataset loads automatically</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Bottom bar -->
+        <div class="bottom-bar">
+            <div class="bottom-stat"><span>Episode:</span><span id="b-episode">--</span></div>
+            <div class="bottom-stat"><span>Task:</span><span id="b-task">--</span></div>
+            <div class="bottom-stat"><span>Errors Left:</span><span id="b-errors">--</span></div>
+            <div class="bottom-stat"><span>Shape:</span><span id="b-shape">--</span></div>
+            <button class="dl-btn" id="dl-btn" disabled onclick="downloadCSV()">EXPORT CSV</button>
+        </div>
+
+    </div>
+
+    <script>
+        const BASE = '';
+        let selectedTask = 1;
+        let scores = [];
+        let isRunning = false;
+
+        const TASK_LABELS = {
+            1: 'Task 1 - Fill Missing Values',
+            2: 'Task 2 - Fix Formats + Duplicates',
+            3: 'Task 3 - Full Pipeline',
+            4: 'Task 4 - Multi-Source Merge'
+        };
+
+        // ── Task selection: switch + auto-reset ──────────────────────────
+        function selectTask(n) {
+            if (isRunning) return;
+            selectedTask = n;
+            document.querySelectorAll('.task-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('[data-task="' + n + '"]').classList.add('active');
+            resetEnv();   // <-- auto-reset when task changes
+        }
+
+        // ── Reset ────────────────────────────────────────────────────────
+        async function resetEnv() {
+            if (isRunning) return;
+            setButtons(false);
+
+            // Immediately update task label and dim ring while loading
+            document.getElementById('b-task').textContent = TASK_LABELS[selectedTask] || 'Task ' + selectedTask;
+            document.getElementById('ring-score').textContent = '...';
+            document.getElementById('ring-fill').style.strokeDashoffset = 326.73;
+
+            try {
+                const r = await fetch(BASE + '/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task_id: selectedTask })
+                });
+                if (!r.ok) throw new Error('Reset failed: ' + r.status);
+                const data = await r.json();
+                scores = [data.observation.current_score];
+                updateUI(data.observation, null);
+                clearThoughts();
+                updateChart();
+                addThought(0, 'Episode started - Task ' + selectedTask, data.observation.message, null);
+                document.getElementById('dl-btn').disabled = false;
+                setStatus('idle');
+                document.getElementById('b-task').textContent = TASK_LABELS[selectedTask] || 'Task ' + selectedTask;
+            } catch (e) {
+                addThought('!', 'Error', e.message, null);
+                console.error(e);
+            }
+            setButtons(true);
+        }
+
+        // ── Run demo agent ───────────────────────────────────────────────
+        async function runAgent() {
+            if (isRunning) return;
+            isRunning = true;
+            setButtons(false);
+            setStatus('running');
+
+            // Fresh reset first
+            try {
+                const initR = await fetch(BASE + '/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task_id: selectedTask })
+                });
+                const initData = await initR.json();
+                let obs = initData.observation;
+                scores = [obs.current_score];
+                clearThoughts();
+                updateUI(obs, null);
+                updateChart();
+                addThought(0, 'Demo agent started', obs.message, null);
+
+                const MAX = 50;
+                let step = 0;
+
+                while (!obs.done && step < MAX) {
+                    await sleep(700);
+                    const action = pickAction(obs);
+                    if (!action) {
+                        addThought('--', 'Agent halted', 'No more actions available from plan', null);
+                        break;
+                    }
+
+                    step++;
+                    const r = await fetch(BASE + '/step', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(action)
+                    });
+                    const data = await r.json();
+                    obs = data.observation;
+                    scores.push(obs.current_score);
+
+                    updateUI(obs, data.reward);
+                    updateChart();
+                    addThought(step, JSON.stringify(action), obs.message, data.reward);
+
+                    const ts = document.getElementById('thought-stream');
+                    ts.scrollTop = ts.scrollHeight;
+                }
+
+                const done = obs.current_score >= 0.95;
+                setStatus(done ? 'done' : 'idle');
+                if (done) {
+                    addThought('OK', 'Cleaning complete!',
+                        'Final score: ' + (obs.current_score * 100).toFixed(1) + '%', null);
+                }
+            } catch (e) {
+                console.error(e);
+                addThought('!', 'Error during agent run', e.message, null);
+                setStatus('idle');
+            }
+
+            isRunning = false;
+            setButtons(true);
+        }
+
+        // ── Rule-based action picker (follows plan field) ────────────────
+        function pickAction(obs) {
+            if (obs.plan && obs.plan.length > 0) {
+                const p = obs.plan[0];
+
+                if (p.startsWith('align_schema'))
+                    return { operation: 'align_schema' };
+                if (p.startsWith('merge_sources'))
+                    return { operation: 'merge_sources' };
+                if (p.startsWith('drop_duplicates'))
+                    return { operation: 'drop_duplicates' };
+
+                const fillM = p.match(/fill_missing on "([^"]+)".*?(median|mode|mean)/);
+                if (fillM)
+                    return { operation: 'fill_missing', column: fillM[1], params: { strategy: fillM[2] } };
+
+                const fmtM = p.match(/fix_format on "([^"]+)"/);
+                if (fmtM)
+                    return { operation: 'fix_format', column: fmtM[1] };
+
+                const outM = p.match(/drop_outliers on "([^"]+)"/);
+                if (outM)
+                    return { operation: 'drop_outliers', column: outM[1] };
+            }
+
+            // Fallback: scan missing counts directly
+            const missing = obs.missing_counts || {};
+            for (const [col, cnt] of Object.entries(missing)) {
+                if (cnt > 0) {
+                    const cat = ['department', 'country', 'email', 'name', 'category'].includes(col);
+                    return { operation: 'fill_missing', column: col, params: { strategy: cat ? 'mode' : 'median' } };
+                }
+            }
+
+            if (obs.duplicate_count > 0)
+                return { operation: 'drop_duplicates' };
+
+            return null;
+        }
+
+        // ── UI update ────────────────────────────────────────────────────
+        function updateUI(obs, reward) {
+            const pct = obs.current_score;
+            const CIRCUM = 326.73; // exact: 2 * pi * 52
+
+            // Ring — minimum 3% arc so ring is never invisible at very low scores
+            const displayPct = Math.max(pct, 0.03);
+            document.getElementById('ring-fill').style.strokeDashoffset = CIRCUM * (1 - displayPct);
+
+            // Score text — show raw value accurately
+            const scoreText = pct < 0.1
+                ? (pct * 100).toFixed(1) + '%'   // e.g. "4.3%"
+                : (pct * 100).toFixed(1) + '%';  // e.g. "87.5%"
+            document.getElementById('ring-score').textContent = scoreText;
+
+            // Color ring by health
+            const col = pct >= 0.85 ? '#00e5a0' : pct >= 0.5 ? '#f5a623' : '#ff4d6d';
+            const rf = document.getElementById('ring-fill');
+            rf.style.stroke = col;
+            rf.style.filter = 'drop-shadow(0 0 5px ' + col + ')';
+            document.getElementById('ring-score').style.color = col;
+
+            // Stats
+            document.getElementById('v-step').textContent = obs.step_count;
+            document.getElementById('v-maxstep').textContent = 'of ' + (obs.step_count + 20);
+
+            if (reward !== null) {
+                const rv = document.getElementById('v-reward');
+                rv.textContent = (reward >= 0 ? '+' : '') + reward.toFixed(4);
+                rv.className = 'vital-value ' + (reward >= 0 ? 'green' : 'red');
+            }
+
+            const nullTotal = Object.values(obs.missing_counts || {}).reduce(function (a, b) { return a + b; }, 0);
+            const vn = document.getElementById('v-nulls');
+            vn.textContent = nullTotal;
+            vn.className = 'vital-value ' + (nullTotal === 0 ? 'green' : 'amber');
+
+            const vd = document.getElementById('v-dupes');
+            vd.textContent = obs.duplicate_count;
+            vd.className = 'vital-value ' + (obs.duplicate_count === 0 ? 'green' : 'amber');
+
+            // DQ bars
+            if (obs.dq_metrics) {
+                setDQBar('completeness', obs.dq_metrics.completeness_pct, 'var(--green)');
+                setDQBar('uniqueness', obs.dq_metrics.uniqueness_pct, 'var(--blue)');
+                setDQBar('validity', obs.dq_metrics.validity_pct, 'var(--amber)');
+            }
+
+            // Plan
+            const planEl = document.getElementById('plan-items');
+            if (obs.plan && obs.plan.length > 0) {
+                planEl.innerHTML = obs.plan.map(function (p, i) {
+                    return '<div class="plan-item">' +
+                        '<div class="plan-num">' + (i + 1) + '</div>' +
+                        '<span style="color:var(--text)">' + p + '</span>' +
+                        '</div>';
+                }).join('');
+            } else if (obs.done) {
+                planEl.innerHTML = '<div style="color:var(--green);font-family:var(--mono);font-size:11px;padding:4px 0">Dataset fully cleaned</div>';
+            } else {
+                planEl.innerHTML = '<div style="color:var(--text-dim);font-family:var(--mono);font-size:11px;padding:4px 0">No further actions needed</div>';
+            }
+
+            // Table
+            if (obs.data_preview) renderTable(obs.data_preview);
+
+            // Bottom bar
+            document.getElementById('b-shape').textContent = obs.data_shape[0] + ' x ' + obs.data_shape[1];
+        }
+
+        function setDQBar(name, val, color) {
+            document.getElementById('dq-' + name).textContent = val.toFixed(1) + '%';
+            document.getElementById('bar-' + name).style.width = Math.min(val, 100) + '%';
+            document.getElementById('bar-' + name).style.background = color;
+        }
+
+        // ── Chart ────────────────────────────────────────────────────────
+        function updateChart() {
+            const svg = document.getElementById('score-chart');
+            const W = svg.clientWidth || 600;
+            const H = svg.clientHeight || 90;
+            const pad = 6;
+
+            if (scores.length < 2) return;
+            document.getElementById('chart-empty-msg').style.display = 'none';
+
+            const xs = scores.map(function (_, i) { return pad + (i / (scores.length - 1)) * (W - 2 * pad); });
+            const ys = scores.map(function (s) { return (H - pad) - s * (H - 2 * pad); });
+            const pts = xs.map(function (x, i) { return x + ',' + ys[i]; }).join(' L ');
+
+            document.getElementById('chart-line').setAttribute('d', 'M ' + pts);
+            document.getElementById('chart-area').setAttribute('d',
+                'M ' + xs[0] + ',' + H + ' L ' + pts + ' L ' + xs[xs.length - 1] + ',' + H + ' Z'
+            );
+        }
+
+        // ── Table ────────────────────────────────────────────────────────
+        function renderTable(csv) {
+            const lines = csv.trim().split('\n');
+            if (lines.length < 2) return;
+            const headers = lines[0].split(',');
+            const rows = lines.slice(1, 11).map(function (l) { return l.split(','); });
+
+            var html = '<table class="data-table"><thead><tr>' +
+                headers.map(function (h) { return '<th>' + h.trim() + '</th>'; }).join('') +
+                '</tr></thead><tbody>';
+
+            rows.forEach(function (row) {
+                html += '<tr>' + row.map(function (cell) {
+                    var v = cell.trim();
+                    var empty = v === '' || v.toLowerCase() === 'nan' || v.toLowerCase() === 'none';
+                    return '<td class="' + (empty ? 'cell-null' : '') + '">' + (empty ? 'NULL' : v) + '</td>';
+                }).join('') + '</tr>';
+            });
+
+            html += '</tbody></table>';
+            document.getElementById('table-wrap').innerHTML = html;
+        }
+
+        // ── Thought stream ───────────────────────────────────────────────
+        function clearThoughts() {
+            document.getElementById('thought-stream').innerHTML = '';
+        }
+
+        function addThought(step, action, result, reward) {
+            const ts = document.getElementById('thought-stream');
+            const rewardHtml = reward !== null
+                ? '<div class="thought-reward ' + (reward >= 0 ? 'reward-pos' : 'reward-neg') + '">' +
+                (reward >= 0 ? '+' : '') + reward.toFixed(4) + '</div>'
+                : '';
+
+            var el = document.createElement('div');
+            el.className = 'thought-item';
+            el.innerHTML =
+                '<div class="thought-step">S' + step + '</div>' +
+                '<div class="thought-body">' +
+                '<div class="thought-action">' + action + '</div>' +
+                '<div class="thought-result">' + result + '</div>' +
+                rewardHtml +
+                '</div>';
+            ts.appendChild(el);
+        }
+
+        // ── Helpers ──────────────────────────────────────────────────────
+        function setStatus(s) {
+            const el = document.getElementById('status-pill');
+            el.className = 'status-pill ' + s;
+            el.textContent = s.toUpperCase();
+        }
+
+        function setButtons(enabled) {
+            document.getElementById('run-btn').disabled = !enabled;
+            document.getElementById('reset-btn').disabled = !enabled;
+        }
+
+        async function downloadCSV() {
+            try {
+                const r = await fetch(BASE + '/export');
+                const text = await r.text();
+                const blob = new Blob([text], { type: 'text/csv' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'cleaned_task' + selectedTask + '.csv';
+                a.click();
+            } catch (e) {
+                console.error('Export failed:', e);
+            }
+        }
+
+        function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+        // Auto-load Task 1 on open
+        window.addEventListener('load', function () { resetEnv(); });
+    </script>
+</body>
+
+</html>

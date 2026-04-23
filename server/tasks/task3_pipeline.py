@@ -38,32 +38,35 @@ DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 VALID_COUNTRIES = {"USA", "UK", "Canada", "Australia", "Germany"}
 
 
-def load():
-    dirty, clean = generate_task3_datasets()
+# Cache at module load — seed=42 makes output identical every time
+def _build_meta(dirty):
     orig_nulls = int(dirty.isnull().sum().sum())
     orig_dupes = len(dirty) - len(dirty.drop_duplicates())
-
-    # Outlier baseline: count rows where purchase_amount > Q3 + 3*IQR
     pa = dirty["purchase_amount"].dropna()
     q1, q3 = pa.quantile(0.25), pa.quantile(0.75)
     iqr = q3 - q1
     orig_outliers = int((pa > q3 + 3 * iqr).sum())
-
     orig_country_issues = int((~dirty["country"].isin(VALID_COUNTRIES) &
                                dirty["country"].notna()).sum())
-    orig_date_issues    = int((~dirty["signup_date"].apply(
+    orig_date_issues = int((~dirty["signup_date"].apply(
         lambda x: bool(DATE_RE.match(str(x))) if pd.notna(x) else False
     )).sum())
-
-    meta = {
-        "orig_nulls":           orig_nulls,
-        "orig_dupes":           orig_dupes,
-        "orig_outliers":        max(orig_outliers, 1),
-        "orig_country_issues":  max(orig_country_issues, 1),
-        "orig_date_issues":     max(orig_date_issues, 1),
+    return {
+        "orig_nulls":          orig_nulls,
+        "orig_dupes":          orig_dupes,
+        "orig_outliers":       max(orig_outliers, 1),
+        "orig_country_issues": max(orig_country_issues, 1),
+        "orig_date_issues":    max(orig_date_issues, 1),
         "q1": q1, "q3": q3, "iqr": iqr,
     }
-    return dirty.copy(), clean, meta
+
+_DIRTY_TEMPLATE, _CLEAN_DF = generate_task3_datasets()
+_META_TEMPLATE = _build_meta(_DIRTY_TEMPLATE)
+
+
+def load():
+    """Return (dirty_df, clean_df, meta) — uses cached template."""
+    return _DIRTY_TEMPLATE.copy(), _CLEAN_DF, dict(_META_TEMPLATE)
 
 
 def score(current_df, meta: dict) -> float:

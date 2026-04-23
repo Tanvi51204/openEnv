@@ -29,23 +29,24 @@ PHONE_RE = re.compile(r"^\d{3}-\d{3}-\d{4}$")
 DATE_RE  = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
-def load():
-    dirty, clean = generate_task2_datasets()
-    original_phone_issues = int((~dirty["phone"].str.match(PHONE_RE)).sum())
-    original_date_issues  = int((~dirty["listed_date"].apply(
+# Cache at module load — seed=42 makes output identical every time
+_DIRTY_TEMPLATE, _CLEAN_DF = generate_task2_datasets()
+_META_TEMPLATE = {
+    "orig_phone": int((~_DIRTY_TEMPLATE["phone"].str.match(PHONE_RE, na=False)).sum()),
+    "orig_date":  int((~_DIRTY_TEMPLATE["listed_date"].apply(
         lambda x: bool(DATE_RE.match(str(x))) if pd.notna(x) else False
-    )).sum())
-    original_dupes = len(dirty) - len(dirty.drop_duplicates())
-    meta = {
-        "orig_phone": original_phone_issues,
-        "orig_date":  original_date_issues,
-        "orig_dupes": original_dupes,
-    }
-    return dirty.copy(), clean, meta
+    )).sum()),
+    "orig_dupes": len(_DIRTY_TEMPLATE) - len(_DIRTY_TEMPLATE.drop_duplicates()),
+}
+
+
+def load():
+    """Return (dirty_df, clean_df, meta) — uses cached template."""
+    return _DIRTY_TEMPLATE.copy(), _CLEAN_DF, dict(_META_TEMPLATE)
 
 
 def score(current_df, meta: dict) -> float:
-    phone_issues = int((~current_df["phone"].str.match(PHONE_RE)).sum())
+    phone_issues = int((~current_df["phone"].str.match(PHONE_RE, na=False)).sum())
     date_issues  = int((~current_df["listed_date"].apply(
         lambda x: bool(DATE_RE.match(str(x))) if pd.notna(x) else False
     )).sum())
@@ -60,7 +61,7 @@ def score(current_df, meta: dict) -> float:
 
 
 def count_errors(current_df, meta: dict) -> int:
-    phone_issues = int((~current_df["phone"].str.match(PHONE_RE)).sum())
+    phone_issues = int((~current_df["phone"].str.match(PHONE_RE, na=False)).sum())
     date_issues  = int((~current_df["listed_date"].apply(
         lambda x: bool(DATE_RE.match(str(x))) if pd.notna(x) else False
     )).sum())

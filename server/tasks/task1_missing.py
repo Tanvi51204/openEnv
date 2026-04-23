@@ -19,12 +19,14 @@ DESCRIPTION = (
     "Example action: {\"operation\": \"fill_missing\", \"column\": \"age\", \"params\": {\"strategy\": \"median\"}}"
 )
 
+# Cache at module load — seed=42 makes output identical every time
+_DIRTY_TEMPLATE, _CLEAN_DF = generate_task1_datasets()
+_ORIGINAL_NULLS = int(_DIRTY_TEMPLATE.isnull().sum().sum())
+
 
 def load():
-    """Return (dirty_df, clean_df, original_null_count)."""
-    dirty, clean = generate_task1_datasets()
-    original_nulls = int(dirty.isnull().sum().sum())
-    return dirty.copy(), clean, original_nulls
+    """Return (dirty_df, clean_df, original_null_count) — uses cached template."""
+    return _DIRTY_TEMPLATE.copy(), _CLEAN_DF, _ORIGINAL_NULLS
 
 
 def score(current_df, original_nulls: int) -> float:
